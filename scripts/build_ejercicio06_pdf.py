@@ -39,7 +39,7 @@ story.append(Paragraph(
 story.append(Spacer(1, 6))
 
 identificacion = [
-        ["Estudiante", "Edwing Perez · matrícula: PENDIENTE"],
+        ["Estudiante", "Edwing Perez"],
         ["Profesor", "Edwin Ramón José Nolasco"],
     ["Repositorio", REPO_URL],
     ["Dataset", "Fashion-MNIST (Zalando) · licencia MIT · 60.000 entrenamiento + 10.000 prueba, 28×28 grises"],
