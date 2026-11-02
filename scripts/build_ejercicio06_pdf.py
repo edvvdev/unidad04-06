@@ -39,9 +39,8 @@ story.append(Paragraph(
 story.append(Spacer(1, 6))
 
 identificacion = [
-    ["Estudiante", "PENDIENTE: nombre completo y matrícula"],
-    ["Correo institucional", "PENDIENTE: ID+USUARIO@users.noreply.github.com"],
-    ["Profesor", "Edwin Ramón José Nolasco"],
+        ["Estudiante", "Edwing Perez · matrícula: PENDIENTE"],
+        ["Profesor", "Edwin Ramón José Nolasco"],
     ["Repositorio", REPO_URL],
     ["Dataset", "Fashion-MNIST (Zalando) · licencia MIT · 60.000 entrenamiento + 10.000 prueba, 28×28 grises"],
     ["Entorno", "Python 3.12 · TensorFlow 2.21 · CPU (sin GPU detectada) · semilla 42"],
