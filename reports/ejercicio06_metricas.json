@@ -1,0 +1,15 @@
+{
+  "mse_reconstruccion_ae": 0.02048407308757305,
+  "mse_reconstruccion_vae": 0.03375227749347687,
+  "kl_media_vae": 6.374400615692139,
+  "diversidad_media_entre_muestras": 4.863302437048997,
+  "distancia_media_al_vecino_mas_cercano": 3.2987025678157806,
+  "segundos_entrenamiento_ae": 9.083341921000056,
+  "segundos_entrenamiento_vae": 14.04421333800019,
+  "ms_inferencia_por_lote_100": 0.4638210200005233,
+  "kb_modelo_ae": 330.814453125,
+  "kb_decoder": 415.8076171875,
+  "parametros_ae": 25888,
+  "parametros_decoder": 101520,
+  "seed": 42
+}
