@@ -3,84 +3,27 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import random
 from pathlib import Path
 from time import perf_counter
 
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
 from inf8239_u03_gen.data import normalize_images, validate_images
-from inf8239_u03_gen.models import build_autoencoder, build_encoder_decoder
+from inf8239_u03_gen.figures import guardar_curvas, guardar_interpolacion, guardar_panel
+from inf8239_u03_gen.metrics import (
+    build_report,
+    flatten,
+    mean_nearest_neighbor_distance,
+    mean_pairwise_distance,
+)
+from inf8239_u03_gen.models import build_autoencoder, build_vae
 
 ROOT = Path(__file__).resolve().parents[1]
 SEED = 42
 os.environ.setdefault("TF_DETERMINISTIC_OPS", "1")
-random.seed(SEED)
-np.random.seed(SEED)
-tf.random.set_seed(SEED)
-
-
-class VAE(tf.keras.Model):
-    def __init__(self, encoder, decoder):
-        super().__init__()
-        self.encoder = encoder
-        self.decoder = decoder
-        self.loss_tracker = tf.keras.metrics.Mean(name="loss")
-        self.reconstruction_tracker = tf.keras.metrics.Mean(name="reconstruction")
-        self.kl_tracker = tf.keras.metrics.Mean(name="kl")
-
-    @property
-    def metrics(self):
-        return [self.loss_tracker, self.reconstruction_tracker, self.kl_tracker]
-
-    def train_step(self, data):
-        images = data[0] if isinstance(data, tuple) else data
-        with tf.GradientTape() as tape:
-            mean, log_variance = self.encoder(images, training=True)
-            epsilon = tf.random.normal(tf.shape(mean))
-            latent = mean + tf.exp(0.5 * log_variance) * epsilon
-            reconstruction = self.decoder(latent, training=True)
-            reconstruction_loss = tf.reduce_mean(tf.reduce_sum(tf.keras.losses.binary_crossentropy(images, reconstruction), axis=(1, 2)))
-            kl_loss = -0.5 * tf.reduce_mean(tf.reduce_sum(1 + log_variance - tf.square(mean) - tf.exp(log_variance), axis=1))
-            total_loss = reconstruction_loss + kl_loss
-        gradients = tape.gradient(total_loss, self.trainable_weights)
-        self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
-        self.loss_tracker.update_state(total_loss)
-        self.reconstruction_tracker.update_state(reconstruction_loss)
-        self.kl_tracker.update_state(kl_loss)
-        return {metric.name: metric.result() for metric in self.metrics}
-
-
-def image_panel(path: Path, originals, ae_reconstructed, vae_reconstructed, generated):
-    columns = len(originals)
-    figure, axes = plt.subplots(4, columns, figsize=(columns, 4))
-    for column in range(columns):
-        for row, collection in enumerate([originals, ae_reconstructed, vae_reconstructed, generated]):
-            axes[row, column].imshow(collection[column].squeeze(), cmap="gray")
-            axes[row, column].axis("off")
-    figure.tight_layout()
-    figure.savefig(path, dpi=170)
-
-
-def training_curves(path: Path, ae_history, vae_history):
-    figure, axes = plt.subplots(1, 2, figsize=(11, 4))
-    axes[0].plot(ae_history["loss"], label="entrenamiento")
-    axes[0].plot(ae_history["val_loss"], label="validación")
-    axes[0].set_title("Autoencoder: pérdida binary crossentropy")
-    axes[0].set_xlabel("época")
-    axes[0].set_ylabel("pérdida")
-    axes[0].legend()
-    axes[1].plot(vae_history["loss"], label="total")
-    axes[1].plot(vae_history["reconstruction"], label="reconstrucción")
-    axes[1].plot(vae_history["kl"], label="KL")
-    axes[1].set_title("VAE: pérdida total, reconstrucción y KL")
-    axes[1].set_xlabel("época")
-    axes[1].set_ylabel("pérdida")
-    axes[1].legend()
-    figure.tight_layout()
-    figure.savefig(path, dpi=170, bbox_inches="tight")
+tf.keras.utils.set_random_seed(SEED)
+tf.config.experimental.enable_op_determinism()
 
 
 def main():
@@ -106,8 +49,8 @@ def main():
     ae_history = autoencoder.fit(x_train, x_train, validation_split=0.1, epochs=args.epochs_ae, batch_size=256,
                     callbacks=[tf.keras.callbacks.EarlyStopping(patience=2, restore_best_weights=True)], verbose=2).history
     ae_seconds = perf_counter() - start
-    encoder, decoder = build_encoder_decoder(tf, latent_dim=2)
-    vae = VAE(encoder, decoder)
+    vae = build_vae(tf, latent_dim=2)
+    encoder, decoder = vae.encoder, vae.decoder
     vae.compile(optimizer="adam")
     start = perf_counter()
     vae_history = vae.fit(x_train, epochs=args.epochs_vae, batch_size=256, verbose=2).history
@@ -120,15 +63,11 @@ def main():
     mean, _log_variance = encoder.predict(originals, verbose=0)
     vae_reconstructed = decoder.predict(mean, verbose=0)
     generated = decoder.predict(np.random.default_rng(SEED).normal(size=(16, 2)), verbose=0)
-    image_panel(reports / "ae_vae_panel.png", originals, ae_reconstructed, vae_reconstructed, generated)
+    guardar_panel(reports / "ejercicio06_panel.png", originals, ae_reconstructed, vae_reconstructed, generated)
     grid = np.array([(1 - value) * np.array([-2.0, -1.0]) + value * np.array([2.0, 1.0]) for value in np.linspace(0, 1, 16)])
     interpolation = decoder.predict(grid, verbose=0)
-    figure, axes = plt.subplots(1, 16, figsize=(16, 1.3))
-    for axis, image in zip(axes, interpolation):
-        axis.imshow(image.squeeze(), cmap="gray")
-        axis.axis("off")
-    figure.savefig(reports / "interpolation.png", dpi=170, bbox_inches="tight")
-    training_curves(reports / "training_curves.png", ae_history, vae_history)
+    guardar_interpolacion(reports / "ejercicio06_interpolacion.png", interpolation)
+    guardar_curvas(reports / "ejercicio06_curvas.png", ae_history, vae_history)
     autoencoder.save(models / "autoencoder.keras")
     decoder.save(models / "decoder.keras")
     evaluation = x_test[evaluation_index]
@@ -136,17 +75,42 @@ def main():
     vae_mean, vae_log_variance = encoder.predict(evaluation, verbose=0)
     vae_predictions = decoder.predict(vae_mean, verbose=0)
     kl_loss = float(-0.5 * np.mean(np.sum(1 + vae_log_variance - np.square(vae_mean) - np.exp(vae_log_variance), axis=1)))
-    metrics = {"ae_train_seconds": ae_seconds, "vae_train_seconds": vae_seconds,
-               "ae_parameters": autoencoder.count_params(), "decoder_parameters": decoder.count_params(),
-               "seed": SEED, "evaluation_examples": len(evaluation_index), "panel_examples": len(panel_index),
-               "ae_test_mse": float(np.mean((evaluation - ae_predictions) ** 2)),
-               "vae_test_mse": float(np.mean((evaluation - vae_predictions) ** 2)),
-               "vae_test_kl": kl_loss,
-               "ae_final_train_loss": float(ae_history["loss"][-1]),
-               "ae_final_val_loss": float(ae_history["val_loss"][-1]),
-               "vae_final_reconstruction": float(vae_history["reconstruction"][-1]),
-               "vae_final_kl": float(vae_history["kl"][-1])}
-    (reports / "training_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    planas_prueba = flatten(evaluation)
+    muestras = decoder.predict(np.random.default_rng(SEED).normal(size=(64, 2)), verbose=0)
+    planas_muestras = flatten(muestras)
+    diversidad = mean_pairwise_distance(planas_muestras)
+    distancia_vecino = mean_nearest_neighbor_distance(planas_muestras[:32], planas_prueba)
+    distancia_pares_prueba = mean_pairwise_distance(planas_prueba)
+    puntos_latentes = [(0.0, 0.0), (1.5, -1.0), (-2.0, 1.5)]
+    medias_latentes = [float(decoder.predict(np.array([punto]), verbose=0).mean()) for punto in puntos_latentes]
+    inicio = perf_counter()
+    decoder.predict(np.zeros((100, 2)), verbose=0)
+    ms_inferencia = (perf_counter() - inicio) * 1000 / 100
+    metrics = build_report({
+        "mse_reconstruccion_ae": float(np.mean((evaluation - ae_predictions) ** 2)),
+        "mse_reconstruccion_vae": float(np.mean((evaluation - vae_predictions) ** 2)),
+        "kl_media_vae": kl_loss,
+        "medias_decodificacion_latentes": medias_latentes,
+        "diversidad_media_entre_muestras": diversidad,
+        "distancia_media_al_vecino_mas_cercano": distancia_vecino,
+        "distancia_media_entre_pares_de_prueba": distancia_pares_prueba,
+        "segundos_entrenamiento_ae": ae_seconds,
+        "segundos_entrenamiento_vae": vae_seconds,
+        "ms_inferencia_por_lote_100": ms_inferencia,
+        "kb_modelo_ae": (models / "autoencoder.keras").stat().st_size / 1024,
+        "kb_decoder": (models / "decoder.keras").stat().st_size / 1024,
+        "parametros_ae": autoencoder.count_params(),
+        "parametros_decoder": decoder.count_params(),
+        "ae_final_train_loss": float(ae_history["loss"][-1]),
+        "ae_final_val_loss": float(ae_history["val_loss"][-1]),
+        "vae_final_reconstruction": float(vae_history["reconstruction"][-1]),
+        "vae_final_kl": float(vae_history["kl"][-1]),
+        "vae_final_total": float(vae_history["loss"][-1]),
+        "seed": SEED,
+        "evaluation_examples": len(evaluation_index),
+        "panel_examples": len(panel_index),
+    }, origen="scripts/train_ae_vae.py")
+    (reports / "ejercicio06_metricas.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     print(json.dumps(metrics, indent=2))
 
 

@@ -11,7 +11,7 @@ uv sync --extra cpu
 # Jupyter y reportlab no están en el grupo dev del proyecto base: se instalan aparte
 uv pip install --python .venv/bin/python jupyter nbformat ipykernel reportlab
 
-Write-Host "==> 2/5. Pruebas (esperado: 4 passed)" -ForegroundColor Cyan
+Write-Host "==> 2/5. Pruebas (esperado: 11 passed)" -ForegroundColor Cyan
 uv run pytest -q
 
 Write-Host "==> 3/5. Runtime y entrenamiento" -ForegroundColor Cyan

@@ -1,15 +1,30 @@
 {
+  "origen": "notebooks/01_ejercicio06_generativos.ipynb",
+  "fecha_ejecucion": "2026-11-05T19:31:54-05:00",
   "mse_reconstruccion_ae": 0.02048407308757305,
   "mse_reconstruccion_vae": 0.03375227749347687,
   "kl_media_vae": 6.374400615692139,
-  "diversidad_media_entre_muestras": 4.863302437048997,
-  "distancia_media_al_vecino_mas_cercano": 3.2987025678157806,
-  "segundos_entrenamiento_ae": 9.083341921000056,
-  "segundos_entrenamiento_vae": 14.04421333800019,
-  "ms_inferencia_por_lote_100": 0.4638210200005233,
-  "kb_modelo_ae": 330.814453125,
-  "kb_decoder": 415.8076171875,
+  "medias_decodificacion_latentes": [
+    0.1040494292974472,
+    0.053188350051641464,
+    0.503974199295044
+  ],
+  "diversidad_media_entre_muestras": 4.863302438921262,
+  "distancia_media_al_vecino_mas_cercano": 3.298702584690899,
+  "distancia_media_entre_pares_de_prueba": 11.398396161125333,
+  "segundos_entrenamiento_ae": 7.631799501999922,
+  "segundos_entrenamiento_vae": 13.214431949003483,
+  "ms_inferencia_por_lote_100": 0.9099259500362677,
+  "kb_modelo_ae": 330.6669921875,
+  "kb_decoder": 415.66015625,
   "parametros_ae": 25888,
   "parametros_decoder": 101520,
-  "seed": 42
+  "ae_final_train_loss": 0.30604106187820435,
+  "ae_final_val_loss": 0.30709752440452576,
+  "vae_final_reconstruction": 267.34881591796875,
+  "vae_final_total": 273.608154296875,
+  "vae_final_kl": 6.259355068206787,
+  "seed": 42,
+  "evaluation_examples": 1000,
+  "panel_examples": 16
 }
