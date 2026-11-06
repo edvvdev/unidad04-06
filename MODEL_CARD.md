@@ -74,10 +74,10 @@ produce qué imagen.
 | Métrica | Valor | Lectura |
 |---|---|---|
 | MSE de reconstrucción (AE) en prueba | 0,02048 | El AE conserva información visual suficiente para ejemplos del propio dominio |
-| MSE de reconstrucción (VAE) en prueba | 0,03375 | **Peor que el AE**: la penalización KL compra espacio muestreable a costa de nitidez |
-| KL media en prueba (VAE) | 6,3744 | El latente se aleja de la referencia N(0,1); un KL mayor daría más regularidad y menos información |
-| Pérdida de reconstrucción final (VAE) | 267,3488 | Pérdida suma por imagen, no MSE; no es comparable con el MSE |
-| KL final por época (VAE) | 6,2594 | Estable: el equilibrio reconstrucción/KL no se dispara |
+| MSE de reconstrucción (VAE) en prueba | 0,03361 | **Peor que el AE**: la penalización KL compra espacio muestreable a costa de nitidez |
+| KL media en prueba (VAE) | 6,3072 | El latente se aleja de la referencia N(0,1); un KL mayor daría más regularidad y menos información |
+| Pérdida de reconstrucción final (VAE) | 267,3268 | Pérdida suma por imagen, no MSE; no es comparable con el MSE |
+| KL final por época (VAE) | 6,2558 | Estable: el equilibrio reconstrucción/KL no se dispara |
 | Loss final de entrenamiento (AE) | 0,30604 | — |
 | Loss final de validación (AE) | 0,30710 | Validez ≈ entrenamiento: **no hay sobreajuste visible** |
 
@@ -96,7 +96,7 @@ HitRate@10 lo eran).
 
 ### Párrafo canónico · diversidad y vecinos cercanos
 
-La diversidad media entre 64 muestras del decoder es **4,8633** (distancia media euclídea en el espacio de píxeles aplanados). La distancia media al vecino más cercano es **3,2987**, calculada **contra 1.000 imágenes del conjunto de prueba** y **no** contra el conjunto de entrenamiento: por eso **no permite descartar la memorización** y no es concluyente como indicador. La línea base es la distancia media entre pares de ese mismo conjunto de prueba, **11,3984** (`distancia_media_entre_pares_de_prueba`): con ella se ve que las muestras del decoder se concentran en una región más estrecha del espacio de píxeles que los datos reales (4,8633 frente a 11,3984), coherente con la repetición de patrones visible en el panel y con un espacio latente de solo 2 dimensiones, y que el 3,2987 se explica por esa concentración y no por una copia de una imagen de prueba.
+La diversidad media entre 64 muestras del decoder es **4,8769** (distancia media euclídea en el espacio de píxeles aplanados). La distancia media al vecino más cercano es **3,3011**, calculada **contra 1.000 imágenes del conjunto de prueba** y **no** contra el conjunto de entrenamiento: por eso **no permite descartar la memorización** y no es concluyente como indicador. La línea base es la distancia media entre pares de ese mismo conjunto de prueba, **11,3984** (`distancia_media_entre_pares_de_prueba`): con ella se ve que las muestras del decoder se concentran en una región más estrecha del espacio de píxeles que los datos reales (4,8769 frente a 11,3984), coherente con la repetición de patrones visible en el panel y con un espacio latente de solo 2 dimensiones, y que el 3,3011 se explica por esa concentración y no por una copia de una imagen de prueba.
 
 Este párrafo es el texto canónico del repositorio: se cita literalmente en
 `docs/CIERRE_INTERPRETATIVO_LAB10.md` y en `docs/EJERCICIO_06_PDF_BRIEF.pdf`. Las tres cifras
@@ -108,9 +108,9 @@ están en `reports/ejercicio06_metricas.json` con las claves `diversidad_media_e
 | Elemento | Valor |
 |---|---|
 | Hardware | CPU de escritorio (sin GPU detectada); `scripts/check_runtime.py` reporta el entorno |
-| Tiempo de entrenamiento AE | 7,63 s (6 épocas) |
-| Tiempo de entrenamiento VAE | 13,21 s (8 épocas) |
-| Tiempo de inferencia | 0,91 ms por lote de 100 imágenes |
+| Tiempo de entrenamiento AE | 6,63 s (6 épocas) |
+| Tiempo de entrenamiento VAE | 13,50 s (8 épocas) |
+| Tiempo de inferencia | 0,49 ms por lote de 100 imágenes |
 | Tamaño del modelo AE | 331 KB (`models/autoencoder.keras`, regenerado, no versionado) |
 | Tamaño del decoder | 416 KB (`models/decoder.keras`, regenerado, no versionado) |
 | Curvas | `reports/ejercicio06_curvas.png` (pérdida AE con validación; VAE con total, reconstrucción y KL) |
@@ -118,16 +118,16 @@ están en `reports/ejercicio06_metricas.json` con las claves `diversidad_media_e
 Los tiempos son los de la corrida del **2026-11-05** (marcas de tiempo exactas en
 `fecha_ejecucion` de `reports/ejercicio06_metricas.json`): son la única medición de costo de la
 entrega y no se mezclan con ninguna otra corrida. En esa misma corrida el entrenamiento completo
-sumó 20,85 s y la inferencia es la parte ligera.
+sumó 20,14 s y la inferencia es la parte ligera.
 
 ## Limitaciones, riesgos y supervisión
 
 | Riesgo / limitación | Descripción | Mitigación |
 |---|---|---|
-| Privacidad no garantiada | El análisis de vecinos cercanos (3,2987) se calculó contra el conjunto de prueba, no contra el de entrenamiento | Antes de cualquier uso de datos sintéticos, repetir el análisis contra el conjunto de entrenamiento completo |
-| Diversidad por debajo de la de los datos | Las 64 muestras del decoder están a 4,8633 entre sí, frente a la línea base de 11,3984 de los datos de prueba | Declarar que las muestras son menos diversas que los datos y no presentarlas como sustituto del dataset |
+| Privacidad no garantiada | El análisis de vecinos cercanos (3,3011) se calculó contra el conjunto de prueba, no contra el de entrenamiento | Antes de cualquier uso de datos sintéticos, repetir el análisis contra el conjunto de entrenamiento completo |
+| Diversidad por debajo de la de los datos | Las 64 muestras del decoder están a 4,8769 entre sí, frente a la línea base de 11,3984 de los datos de prueba | Declarar que las muestras son menos diversas que los datos y no presentarlas como sustituto del dataset |
 | Sesgo heredado | El modelo reproduce la distribución y los sesgos de Fashion-MNIST | Declarar el dataset y su licencia en toda comunicación |
 | Fidelidad baja | 28×28, grises, formas simples | No extrapolar a dominios photography/industrial |
 | Espacio latente de 2 dimensiones | Interpolar no garantiza pluralistic | Usar las imágenes como ilustración, no como evidencia de calidad |
-| Coste | Entrenamiento CPU de 20,85 s en total; la inferencia es la parte ligera | La aplicación no entrena, solo infiere |
+| Coste | Entrenamiento CPU de 20,14 s en total; la inferencia es la parte ligera | La aplicación no entrena, solo infiere |
 | Uso responsable | Los datos generados pueden confundirse con imágenes reales | Marcar siempre las salidas como sintéticas |

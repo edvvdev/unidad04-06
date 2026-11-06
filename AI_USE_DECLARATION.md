@@ -36,16 +36,18 @@ Fecha: 2026-11-05
 - [x] `uv sync --extra cpu` → `Resolved 88 packages in 0.64ms` / `Checked 74 packages in 0.67ms`
       (la lista termina en `- wcwidth==0.9.4`, `- webcolors==25.10.0`, `- webencodings==0.6.1`),
       sin errores.
-- [x] `uv run pytest -q` → `11 passed in 6.21s` (TensorFlow 2.21.0).
+- [x] `uv run pytest -q` → `15 passed` (TensorFlow 2.21.0).
 - [x] `uv run python scripts/check_runtime.py` →
       `Python/OS: 3.12.15 Linux-6.12.113+deb13-amd64-x86_64-with-glibc2.41`,
       `TensorFlow: 2.21.0`, `GPU: []`.
 - [x] `uv run python scripts/train_ae_vae.py --epochs-ae 6 --epochs-vae 8` → escribe
-      `reports/ejercicio06_metricas.json`; AE MSE **0,02048** y VAE MSE **0,03375**, idénticos a los
+      `reports/ejercicio06_metricas.json`; AE MSE **0,02048** y VAE MSE **0,03361**, idénticos a los
       que aparecen en la Model Card y en el PDF (el JSON es la única fuente de verdad). El script y el
-      notebook devuelven los mismos valores (`diversidad_media_entre_muestras` 4,8633,
-      `distancia_media_al_vecino_mas_cercano` 3,2987, `distancia_media_entre_pares_de_prueba` 11,3984)
-      porque siembran con la misma semilla y `TF_DETERMINISTIC_OPS=1`.
+      notebook devuelven los mismos valores (`diversidad_media_entre_muestras` 4,8769,
+      `distancia_media_al_vecino_mas_cercano` 3,3011, `distancia_media_entre_pares_de_prueba` 11,3984)
+      porque siembran con la misma semilla **y con TensorFlow fijado a un solo hilo por operación**
+      (`TF_NUM_INTRAOP_THREADS=1`, `TF_NUM_INTEROP_THREADS=1`): con varios hilos, oneDNN cambia el
+      orden de las sumas en las capas densas y el VAE entrenado varía entre corridas.
 - [x] Revisión visual de las tres figuras del panel (`reports/ejercicio06_panel.png`,
       `reports/ejercicio06_interpolacion.png`, `reports/ejercicio06_curvas.png`): no tienen textos
       encimados y el panel no muestra solo los mejores casos.
@@ -65,7 +67,7 @@ Fecha: 2026-11-05
   de pares de ese mismo conjunto de prueba, para que la cifra del vecino más cercano sea
   interpretable.
 - **No** se corrigió ni ajustó ninguna métrica para mejorar el desempeño: el VAE reproduce peor que el
-  AE (MSE 0,03375 frente a 0,02048) y ese resultado **se publica tal cual**, con su explicación
+  AE (MSE 0,03361 frente a 0,02048) y ese resultado **se publica tal cual**, con su explicación
   (la penalización KL compra espacio muestreable a cambio de nitidez).
 
 ## Responsabilidad asumida
@@ -95,32 +97,40 @@ entrega del estudiante.
    diversidad repetido en la columna del AE, rutas de figuras divergentes, dos juegos de tiempos,
    casillas de verificación sin marcar, lógica del VAE duplicada, `ruff check` en rojo y artefactos
    de `models/` que no se versionan sin decirlo.»
+7. «Ejecuta el flujo completo y, si el pipeline se rompe, corrige la causa: el párrafo canónico
+   dejó de cuadrar con la corrida porque el entrenamiento no era reproducible bit a bit. Deja el
+   pipeline en verde y añade una prueba que detecte la desincronización antes del PDF.»
 
 **Verificaciones que el estudiante debe repetir (casillas para marcar)**
 
-- [x] `uv sync --extra cpu` y `uv run pytest -q` → `11 passed in 6.21s`.
+- [x] `uv sync --extra cpu` y `uv run pytest -q` → `15 passed` (TensorFlow 2.21.0).
 - [x] `uv run python scripts/check_runtime.py` → `TensorFlow: 2.21.0`, `GPU: []`.
 - [x] `uv run python scripts/train_ae_vae.py --epochs-ae 6 --epochs-vae 8` → AE MSE 0,02048 y VAE MSE
-      0,03375 (idénticos a `reports/ejercicio06_metricas.json`).
+      0,03361 (idénticos a `reports/ejercicio06_metricas.json`).
 - [x] Ejecutar el notebook del Ejercicio 06 y revisar las tres figuras (panel, interpolación, curvas)
       → 15 celdas ejecutadas, 0 celdas en error.
 - [x] Revisar que el panel usa la muestra con semilla 42 y no casos elegidos a mano.
 - [x] Regenerar `docs/EJERCICIO_06_PDF_BRIEF.pdf` y completar el nombre y el enlace del repositorio
       → `PDF generado: /home/trek/source/uasd/cienciadedatos/tareas/Unidad_3/INF8239_U03_Generativos/docs/EJERCICIO_06_PDF_BRIEF.pdf`
-      (4 páginas, `pdftotext` devuelve el nombre «Edwing Perez», la URL del repositorio, 4,8633, 3,2987
+      (4 páginas, `pdftotext` devuelve el nombre «Edwing Perez», la URL del repositorio, 4,8769, 3,3011
       y 11,3984).
+- [x] Repetir el entrenamiento tres veces con `TF_NUM_INTRAOP_THREADS=1` y `TF_NUM_INTEROP_THREADS=1`
+      → `mse_reconstruccion_vae` 0,033609215170145035 y `diversidad_media_entre_muestras` 4,876914890453047
+      **idénticos en las tres corridas** (antes variaban en el cuarto decimal).
 
 **Correcciones realizadas durante la ejecución**
 
 | Corrección | Causa | Verificación |
 |---|---|---|
 | Curvas de entrenamiento guardadas en `reports/ejercicio06_curvas.png` | El manual exige las curvas y el base no las guardaba | Figura con leyenda y ejes rotulados |
-| MSE de reconstrucción y divergencia KL añadidos a `reports/ejercicio06_metricas.json` | Sin ellos no hay cifra para el informe | `mse_reconstruccion_ae` 0,020484 y `mse_reconstruccion_vae` 0,033752 |
+| MSE de reconstrucción y divergencia KL añadidas a `reports/ejercicio06_metricas.json` | Sin ellas no hay cifra para el informe | `mse_reconstruccion_ae` 0,020484 y `mse_reconstruccion_vae` 0,033609 |
 | Panel ampliado a 16 ejemplos con semilla fija | El base usaba los 12 primeros del test | `reports/ejercicio06_panel.png` con 16 columnas y cuatro filas |
 | VAE del notebook con `train_step` propio | Una versión inline del notebook no calculaba pérdida y Keras fallaba con «No loss to compute» | La clase pasó a `src/inf8239_u03_gen/models.py` (`build_vae`) y la usan script y notebook |
-| Métricas de diversidad y distancia al vecino más cercano | El manual pide diversidad; el base no la medía | `diversidad_media_entre_muestras` 4,8633 y `distancia_media_al_vecino_mas_cercano` 3,2987 |
-| Línea base de pares del conjunto de prueba | Sin ella, el 3,2987 no era interpretable | `distancia_media_entre_pares_de_prueba` 11,3984 |
+| Métricas de diversidad y distancia al vecino más cercano | El manual pide diversidad; el base no la medía | `diversidad_media_entre_muestras` 4,8769 y `distancia_media_al_vecino_mas_cercano` 3,3011 |
+| Línea base de pares del conjunto de prueba | Sin ella, el 3,3011 no era interpretable | `distancia_media_entre_pares_de_prueba` 11,3984 |
 | Párrafo canónico de diversidad y vecinos cercanos | La documentación afirmaba que no se habían medido | Texto único en `MODEL_CARD.md`, citado literalmente en el cierre y en el PDF |
 | Una sola fuente de verdad de métricas (`reports/ejercicio06_metricas.json`) | Había dos juegos de tiempos de corridas distintas | Se eliminó `reports/training_metrics.json`; el JSON lleva `origen` y `fecha_ejecucion` |
 | Rutas de figuras unificadas (`reports/ejercicio06_*.png`) | El PDF y los documentos citaban juegos distintos | Se eliminaron `ae_vae_panel.png`, `interpolation.png` y `training_curves.png` |
 | `requirements.txt` y `requirements-dev.txt` generados con `uv export` | El mandato los exige | Reproducibles desde `pyproject.toml` y `uv.lock` |
+| **Reproducibilidad bit a bit del entrenamiento** (`TF_NUM_INTRAOP_THREADS=1`, `TF_NUM_INTEROP_THREADS=1` en el script y en el notebook) | Con varios hilos por operación, oneDNN cambia el orden de las sumas en las capas densas: dos corridas del mismo código y la misma semilla daban mse_vae 0,033678 y 0,033752, y `scripts/run_all.sh` abortaba en el paso 5 porque el párrafo canónico (4,8633) ya no cuadraba con la corrida (4,8676) | Tres corridas consecutivas dan `mse_reconstruccion_vae` 0,033609215170145035 y `diversidad_media_entre_muestras` 4,876914890453047 idénticos; el script y el notebook coinciden en todas las métricas del modelo |
+| Párrafo canónico derivado del JSON (`numero_es` y `parrafo_canonico` en `src/inf8239_u03_gen/metrics.py`) | El párrafo se escribía a mano y cualquier reentrenamiento lo desincronizaba | `tests/test_canonical.py` (4 pruebas) falla en `pytest -q` si el párrafo de `MODEL_CARD.md` no coincide con `reports/ejercicio06_metricas.json`; el generador del PDF avisa con el párrafo exacto que debe copiarse |

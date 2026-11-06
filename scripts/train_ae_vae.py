@@ -6,11 +6,24 @@ import os
 from pathlib import Path
 from time import perf_counter
 
+# Reproducibilidad bit a bit. La semilla global no basta: con varios hilos por
+# operación, oneDNN cambia el orden de las sumas en las capas densas y el VAE
+# entrenado varía entre corridas (mse 0,033678... frente a 0,033752... en dos
+# corridas del mismo código). Con un solo hilo intra e inter, dos corridas dan
+# exactamente el mismo modelo y las mismas métricas.
+os.environ["TF_DETERMINISTIC_OPS"] = "1"
+os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
+os.environ["TF_NUM_INTEROP_THREADS"] = "1"
+
 import numpy as np
 import tensorflow as tf
 
 from inf8239_u03_gen.data import normalize_images, validate_images
-from inf8239_u03_gen.figures import guardar_curvas, guardar_interpolacion, guardar_panel
+from inf8239_u03_gen.figures import (
+    guardar_curvas,
+    guardar_interpolacion,
+    guardar_panel,
+)
 from inf8239_u03_gen.metrics import (
     build_report,
     flatten,

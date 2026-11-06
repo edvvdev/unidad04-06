@@ -33,6 +33,50 @@ CLAVES_CANONICAS = (
     "panel_examples",
 )
 
+CLAVES_CANONICAS_DIVERSIDAD = (
+    "diversidad_media_entre_muestras",
+    "distancia_media_al_vecino_mas_cercano",
+    "distancia_media_entre_pares_de_prueba",
+)
+
+ENCABEZADO_CANONICO = "### Párrafo canónico · diversidad y vecinos cercanos"
+
+
+def numero_es(valor: float, decimales: int = 4) -> str:
+    """Formato español: coma decimal y punto de millar (4,8769)."""
+    return f"{valor:,.{decimales}f}".replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+
+
+def parrafo_canonico(metricas: dict[str, object]) -> str:
+    """Renderiza el párrafo canónico de diversidad con las cifras de `metricas`.
+
+    Es la forma canónica de la entrega: se cita literalmente en `MODEL_CARD.md`,
+    en `docs/CIERRE_INTERPRETATIVO_LAB10.md` y en el PDF breve.
+    """
+    diversidad = numero_es(float(metricas["diversidad_media_entre_muestras"]))
+    vecino = numero_es(float(metricas["distancia_media_al_vecino_mas_cercano"]))
+    base = numero_es(float(metricas["distancia_media_entre_pares_de_prueba"]))
+    return (
+        f"La diversidad media entre 64 muestras del decoder es **{diversidad}** (distancia media "
+        "euclídea en el espacio de píxeles aplanados). La distancia media al vecino más cercano es "
+        f"**{vecino}**, calculada **contra 1.000 imágenes del conjunto de prueba** y **no** contra el "
+        "conjunto de entrenamiento: por eso **no permite descartar la memorización** y no es "
+        "concluyente como indicador. La línea base es la distancia media entre pares de ese mismo "
+        f"conjunto de prueba, **{base}** (`distancia_media_entre_pares_de_prueba`): con ella se ve que "
+        "las muestras del decoder se concentran en una región más estrecha del espacio de píxeles que "
+        f"los datos reales ({diversidad} frente a {base}), coherente con la repetición de patrones "
+        "visible en el panel y con un espacio latente de solo 2 dimensiones, y que el "
+        f"{vecino} se explica por esa concentración y no por una copia de una imagen de prueba."
+    )
+
+
+def extraer_parrafo_canonico(documento: str) -> str:
+    """Extrae de un documento markdown el párrafo canónico de la Model Card."""
+    partes = documento.split(ENCABEZADO_CANONICO, 1)
+    if len(partes) != 2:
+        raise ValueError("La Model Card no contiene el encabezado del párrafo canónico")
+    return partes[1].strip().split("\n\n", 1)[0].strip()
+
 
 def flatten(images: np.ndarray) -> np.ndarray:
     """Convierte imágenes (N, H, W, C) en vectores planos (N, H*W*C)."""

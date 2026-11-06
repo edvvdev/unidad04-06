@@ -32,7 +32,7 @@ uv run streamlit run app/streamlit_app.py
 |---|---|
 | Notebook ejecutado | `notebooks/01_ejercicio06_generativos.ipynb` (15 celdas, con salidas) |
 | Código reutilizable | `src/inf8239_u03_gen/` (`data`, `models` con el VAE, `metrics`, `figures`) y `scripts/train_ae_vae.py` |
-| Pruebas | `tests/` (`uv run pytest -q` → 11 passed) |
+| Pruebas | `tests/` (`uv run pytest -q` → 15 passed) |
 | Métricas y figuras | `reports/` |
 | Requisitos | `requirements.txt` y `requirements-dev.txt` (exportados con `uv export`) |
 | PDF breve de entrega | `docs/EJERCICIO_06_PDF_BRIEF.pdf` |
@@ -67,16 +67,23 @@ Todas las cifras provienen de **una sola corrida**, la del 2026-11-05, y su fuen
 `reports/ejercicio06_metricas.json` (que registra `origen` y `fecha_ejecucion`). No hay un segundo
 juego de números en el repositorio.
 
+La corrida es **reproducible bit a bit**: el script y el notebook fijan TensorFlow a un solo hilo por
+operación (`TF_NUM_INTRAOP_THREADS=1`, `TF_NUM_INTEROP_THREADS=1`) antes de importarlo. Sin esa
+fijación, el orden de las sumas en las capas densas cambia entre corridas y el VAE entrenado varía en
+el cuarto decimal, con lo que el párrafo canónico de la Model Card deja de cuadrar con el JSON. El
+párrafo canónico se renderiza desde el JSON (`parrafo_canonico` en `src/inf8239_u03_gen/metrics.py`)
+y `tests/test_canonical.py` verifica que la documentación está sincronizada.
+
 | Evidencia | Archivo | Resultado |
 |---|---|---|
-| Métricas (fuente de verdad) | `reports/ejercicio06_metricas.json` | AE test MSE **0,02048** · VAE test MSE **0,03375** · KL medio 6,3744 |
-| Diversidad y vecinos cercanos | `reports/ejercicio06_metricas.json` | diversidad media entre 64 muestras **4,8633** · distancia media al vecino más cercano **3,2987** (contra 1.000 imágenes de **prueba**, no de entrenamiento) · línea base de pares de prueba **11,3984** |
-| Curvas | `reports/ejercicio06_curvas.png` | AE: loss 0,30604 vs val_loss 0,30710 (sin sobreajuste) · VAE: total 273,61, reconstrucción 267,35, KL 6,26 |
+| Métricas (fuente de verdad) | `reports/ejercicio06_metricas.json` | AE test MSE **0,02048** · VAE test MSE **0,03361** · KL medio 6,3072 |
+| Diversidad y vecinos cercanos | `reports/ejercicio06_metricas.json` | diversidad media entre 64 muestras **4,8769** · distancia media al vecino más cercano **3,3011** (contra 1.000 imágenes de **prueba**, no de entrenamiento) · línea base de pares de prueba **11,3984** |
+| Curvas | `reports/ejercicio06_curvas.png` | AE: loss 0,30604 vs val_loss 0,30710 (sin sobreajuste) · VAE: total 273,58, reconstrucción 267,33, KL 6,26 |
 | Panel no seleccionado | `reports/ejercicio06_panel.png` | 16 ejemplos de prueba con semilla 42: originales, reconstrucción AE, reconstrucción VAE y muestras nuevas |
 | Interpolación | `reports/ejercicio06_interpolacion.png` | 16 puntos entre dos extremos del espacio latente |
 | Modelos | `models/autoencoder.keras`, `models/decoder.keras` | 331 KB y 416 KB · 25.888 y 101.520 parámetros · **regenerados por el script, no versionados en Git** |
-| Tiempos | `reports/ejercicio06_metricas.json` | AE 7,63 s (6 épocas) · VAE 13,21 s (8 épocas) (de esa misma corrida) |
-| Inferencia | `reports/ejercicio06_metricas.json` | 0,91 ms por lote de 100 imágenes |
+| Tiempos | `reports/ejercicio06_metricas.json` | AE 6,63 s (6 épocas) · VAE 13,50 s (8 épocas) (de esa misma corrida) |
+| Inferencia | `reports/ejercicio06_metricas.json` | 0,49 ms por lote de 100 imágenes |
 
 Entorno de la ejecución: Python 3.12.15 · Linux Debian 13 · TensorFlow 2.21.0 · `GPU: []`
 (`scripts/check_runtime.py`).

@@ -23,6 +23,13 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from inf8239_u03_gen.metrics import (
+    CLAVES_CANONICAS_DIVERSIDAD,
+    extraer_parrafo_canonico,
+    numero_es,
+    parrafo_canonico,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
 REPO_URL = os.getenv("REPO_URL", "https://github.com/edvvdev/unidad04-06")
@@ -31,7 +38,6 @@ metricas = json.loads((REPORTS / "ejercicio06_metricas.json").read_text(encoding
 cierre = (ROOT / "docs/CIERRE_INTERPRETATIVO_LAB10.md").read_text(encoding="utf-8")
 model_card = (ROOT / "MODEL_CARD.md").read_text(encoding="utf-8")
 
-ENCABEZADO_CANONICO = "### Párrafo canónico · diversidad y vecinos cercanos"
 SECCION_DIVERSIDAD = "Evidencia de diversidad"
 
 
@@ -39,21 +45,8 @@ def negritas(texto: str) -> str:
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", texto)
 
 
-def numero(valor, decimales: int = 4) -> str:
-    """Formato español: coma decimal y punto de millar."""
-    return f"{valor:,.{decimales}f}".replace(",", "\x00").replace(".", ",").replace("\x00", ".")
-
-
 def fecha_corta(iso: str) -> str:
     return iso.split("T")[0]
-
-
-def parrafo_canonico(texto: str) -> str:
-    """Extrae de la Model Card el párrafo canónico de diversidad y vecinos cercanos."""
-    partes = texto.split(ENCABEZADO_CANONICO, 1)
-    if len(partes) != 2:
-        raise ValueError("La Model Card no contiene el encabezado del párrafo canónico")
-    return partes[1].strip().split("\n\n", 1)[0].strip()
 
 
 def bloques_markdown(texto: str) -> list[tuple[str, object]]:
@@ -111,17 +104,24 @@ def filas_de_tabla(lineas: list[str]) -> list[list[str]]:
     return celdas
 
 
-canonico = parrafo_canonico(model_card)
+canonico = extraer_parrafo_canonico(model_card)
 if canonico not in cierre:
     raise ValueError("El cierre interpretativo debe citar literalmente el párrafo canónico de la Model Card")
-for clave in (
-    "diversidad_media_entre_muestras",
-    "distancia_media_al_vecino_mas_cercano",
-    "distancia_media_entre_pares_de_prueba",
-):
-    valor = numero(metricas[clave])
-    if valor not in canonico:
-        raise ValueError(f"El párrafo canónico no está sincronizado con {clave} ({valor})")
+esperado = parrafo_canonico(metricas)
+if canonico != esperado:
+    desajuste = [
+        f"  - {clave}: el JSON dice {numero_es(float(metricas[clave]))}"
+        for clave in CLAVES_CANONICAS_DIVERSIDAD
+        if numero_es(float(metricas[clave])) not in canonico
+    ]
+    raise ValueError(
+        "El párrafo canónico de MODEL_CARD.md no está sincronizado con "
+        "reports/ejercicio06_metricas.json:\n"
+        + "\n".join(desajuste)
+        + "\n\nPárrafo canónico que debe figurar en MODEL_CARD.md y en "
+        "docs/CIERRE_INTERPRETATIVO_LAB10.md:\n\n"
+        + esperado
+    )
 
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(name="Title2", parent=styles["Title"], fontSize=17, spaceAfter=6))
@@ -168,22 +168,22 @@ story.append(Paragraph("1. Tabla principal de resultados", styles["H1s"]))
 filas = [
     ["Métrica", "Autoencoder (AE)", "VAE", "Lectura"],
     ["MSE de reconstrucción (1.000 de prueba)",
-     numero(metricas["mse_reconstruccion_ae"], 5), numero(metricas["mse_reconstruccion_vae"], 5),
+     numero_es(metricas["mse_reconstruccion_ae"], 5), numero_es(metricas["mse_reconstruccion_vae"], 5),
      "El AE reconstruye mejor: la penalización KL compra espacio muestreable a costa de nitidez"],
-    ["Divergencia KL media", "—", numero(metricas["kl_media_vae"]),
+    ["Divergencia KL media", "—", numero_es(metricas["kl_media_vae"]),
      "El latente se aleja de la referencia N(0,1)"],
-    ["Tiempo de entrenamiento (s)", numero(metricas["segundos_entrenamiento_ae"], 2),
-     numero(metricas["segundos_entrenamiento_vae"], 2),
+    ["Tiempo de entrenamiento (s)", numero_es(metricas["segundos_entrenamiento_ae"], 2),
+     numero_es(metricas["segundos_entrenamiento_vae"], 2),
      f"CPU de la corrida del {fecha_corta(metricas['fecha_ejecucion'])}; contextual, no energía"],
-    ["Parámetros", numero(metricas["parametros_ae"], 0), numero(metricas["parametros_decoder"], 0) + " (decoder)",
+    ["Parámetros", numero_es(metricas["parametros_ae"], 0), numero_es(metricas["parametros_decoder"], 0) + " (decoder)",
      "El decoder del VAE cuadruplica los parámetros del AE"],
-    ["Tamaño del modelo (KB)", numero(metricas["kb_modelo_ae"], 0), numero(metricas["kb_decoder"], 0),
+    ["Tamaño del modelo (KB)", numero_es(metricas["kb_modelo_ae"], 0), numero_es(metricas["kb_decoder"], 0),
      "Artefactos en models/, no versionados en Git"],
-    ["Diversidad media entre muestras (VAE)", "—", numero(metricas["diversidad_media_entre_muestras"]),
+    ["Diversidad media entre muestras (VAE)", "—", numero_es(metricas["diversidad_media_entre_muestras"]),
      "Distancia media entre 64 muestras del decoder, en el espacio de píxeles aplanados"],
-    ["Distancia media al vecino más cercano (VAE)", "—", numero(metricas["distancia_media_al_vecino_mas_cercano"]),
+    ["Distancia media al vecino más cercano (VAE)", "—", numero_es(metricas["distancia_media_al_vecino_mas_cercano"]),
      "Contra 1.000 imágenes del conjunto de prueba: no permite descartar la memorización"],
-    ["Línea base: distancia media entre pares de prueba", "—", numero(metricas["distancia_media_entre_pares_de_prueba"]),
+    ["Línea base: distancia media entre pares de prueba", "—", numero_es(metricas["distancia_media_entre_pares_de_prueba"]),
      "Referencia del conjunto de prueba: es lo que hace interpretable la distancia al vecino más cercano"],
 ]
 tabla_res = Table([[celda(valor, styles["Celda"]) for valor in fila] for fila in filas],
