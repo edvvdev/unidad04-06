@@ -31,8 +31,8 @@ uv run streamlit run app/streamlit_app.py
 | Elemento | Dónde está |
 |---|---|
 | Notebook ejecutado | `notebooks/01_ejercicio06_generativos.ipynb` (15 celdas, con salidas) |
-| Código reutilizable | `src/inf8239_u03_gen/` (`data`, `models`) y `scripts/train_ae_vae.py` |
-| Pruebas | `tests/` (`uv run pytest -q` → 4 passed) |
+| Código reutilizable | `src/inf8239_u03_gen/` (`data`, `models` con el VAE, `metrics`, `figures`) y `scripts/train_ae_vae.py` |
+| Pruebas | `tests/` (`uv run pytest -q` → 11 passed) |
 | Métricas y figuras | `reports/` |
 | Requisitos | `requirements.txt` y `requirements-dev.txt` (exportados con `uv export`) |
 | PDF breve de entrega | `docs/EJERCICIO_06_PDF_BRIEF.pdf` |
@@ -61,34 +61,48 @@ El script hace: entorno con uv → pruebas → descarga del dataset y auditoría
 principio a fin → PDF de entrega. Instala además Jupyter y `reportlab`, que **no** vienen en el
 grupo de desarrollo del proyecto base del profesor (`uv sync` solo instala pytest, pytest-cov y ruff).
 
-## Resultados de referencia (2026-11-01, CPU sin GPU)
+## Resultados de referencia (corrida del 2026-11-05, CPU sin GPU)
+
+Todas las cifras provienen de **una sola corrida**, la del 2026-11-05, y su fuente de verdad es
+`reports/ejercicio06_metricas.json` (que registra `origen` y `fecha_ejecucion`). No hay un segundo
+juego de números en el repositorio.
 
 | Evidencia | Archivo | Resultado |
 |---|---|---|
-| Métricas | `reports/training_metrics.json` | AE test MSE **0,02048** · VAE test MSE **0,03375** · KL medio 6,3744 |
-| Curvas | `reports/training_curves.png` | AE: loss 0,30604 vs val_loss 0,30710 (sin sobreajuste) · VAE: total 273,60, reconstructions 267,35, KL 6,26 |
-| Panel no seleccionado | `reports/ae_vae_panel.png` | 16 ejemplos de prueba con semilla 42: originales, reconstrucción AE, reconstrucción VAE y muestras nuevas |
-| Interpolación | `reports/interpolation.png` | 16 puntos entre dos extremos del espacio latente |
-| Modelos | `models/autoencoder.keras`, `models/decoder.keras` | 331 KB y 416 KB · 25.888 y 101.520 parámetros |
-| Tiempos | `reports/training_metrics.json` | AE 10,42 s (6 épocas) · VAE 17,23 s (8 épocas) |
-| Consolidação E06 | `reports/ejercicio06_metricas.json` | AE MSE 0,02048 · VAE MSE 0,03375 · KL 6,3744 · diversidad media 4,8633 · distancia al vecino más cercano 3,2987 · AE 9,08 s · VAE 14,04 s · inferencia 0,46 ms por lote de 100 |
+| Métricas (fuente de verdad) | `reports/ejercicio06_metricas.json` | AE test MSE **0,02048** · VAE test MSE **0,03375** · KL medio 6,3744 |
+| Diversidad y vecinos cercanos | `reports/ejercicio06_metricas.json` | diversidad media entre 64 muestras **4,8633** · distancia media al vecino más cercano **3,2987** (contra 1.000 imágenes de **prueba**, no de entrenamiento) · línea base de pares de prueba **11,3984** |
+| Curvas | `reports/ejercicio06_curvas.png` | AE: loss 0,30604 vs val_loss 0,30710 (sin sobreajuste) · VAE: total 273,61, reconstrucción 267,35, KL 6,26 |
+| Panel no seleccionado | `reports/ejercicio06_panel.png` | 16 ejemplos de prueba con semilla 42: originales, reconstrucción AE, reconstrucción VAE y muestras nuevas |
+| Interpolación | `reports/ejercicio06_interpolacion.png` | 16 puntos entre dos extremos del espacio latente |
+| Modelos | `models/autoencoder.keras`, `models/decoder.keras` | 331 KB y 416 KB · 25.888 y 101.520 parámetros · **regenerados por el script, no versionados en Git** |
+| Tiempos | `reports/ejercicio06_metricas.json` | AE 7,63 s (6 épocas) · VAE 13,21 s (8 épocas) (de esa misma corrida) |
+| Inferencia | `reports/ejercicio06_metricas.json` | 0,91 ms por lote de 100 imágenes |
 
 Entorno de la ejecución: Python 3.12.15 · Linux Debian 13 · TensorFlow 2.21.0 · `GPU: []`
 (`scripts/check_runtime.py`).
+
+### Los modelos no se versionan
+
+`models/autoencoder.keras` y `models/decoder.keras` están en `.gitignore` (`models/*`, salvo
+`.gitkeep`): son binarios de 331 KB y 416 KB que **se regeneran** con
+`uv run python scripts/train_ae_vae.py --epochs-ae 6 --epochs-vae 8` o al ejecutar el notebook. El
+README y la Model Card los citan como evidencia del modelo entrenado (parámetros y tamaño), no como
+archivos contenidos en el árbol de Git.
 
 ## Documentación
 
 | Documento | Contenido |
 |---|---|
 | `MODEL_CARD.md` | Modelos, uso previsto y fuera de alcance, dataset, arquitectura, métricas, hardware, riesgos |
-| `docs/CIERRE_INTERPRETATIVO_LAB10.md` | Cierre interpretativo del LAB10 |
+| `docs/CIERRE_INTERPRETATIVO_LAB10.md` | Cierre interpretativo del LAB10 (cita el párrafo canónico de diversidad) |
 | `REQUISITOS_LAB10.md` | Requisitos y evidencia según el manual del profesor |
 | `CAMBIOS_AL_BASE.md` | Cambios aplicados sobre el proyecto base y su justificación |
 | `docs/EJERCICIO_06_PDF_BRIEF.pdf` | PDF breve de entrega (4 páginas) con la tabla principal y las figuras |
-| `AI_USE_DECLARATION.md` | Uso honesto del asistente de IA y verificaciones pendientes del estudiante |
+| `AI_USE_DECLARATION.md` | Uso honesto del asistente de IA y verificaciones del estudiante con su salida real |
 
 ## Advertencia
 
-Una imagen sintética no es automáticamente privada, original, verdadera ni libre de sesgo. No se
-afirme privacidad por el solo hecho de generar datos sintéticos: falta el análisis de vecinos
-cercanos en el conjunto de entrenamiento.
+Una imagen sintética no es automáticamente privada, original, verdadera ni libre de sesgo. El
+análisis de vecinos cercanos de esta entrega se calculó contra el **conjunto de prueba**, así que no
+permite descartar la memorización del conjunto de entrenamiento; antes de cualquier uso de datos
+sintéticos hay que repetirlo contra el entrenamiento completo.
